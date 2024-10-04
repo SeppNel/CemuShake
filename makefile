@@ -4,3 +4,6 @@ CemuShake:
 
 run:
 	./build/CemuShake
+
+clean:
+	rm -R build/
