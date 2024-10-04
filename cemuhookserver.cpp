@@ -144,7 +144,7 @@ void Server::Start() {
 
     char ipStr[INET6_ADDRSTRLEN];
     ipStr[0] = 0;
-    cout << "Server: Socket created at IP: " << GetIP(sockAddr, ipStr) << " Port: " << ntohs(sockAddr.sin_port) << ".";
+    cout << "Server: Socket created at IP: " << GetIP(sockAddr, ipStr) << " Port: " << ntohs(sockAddr.sin_port) << ".\n";
 
     char buf[BUFLEN];
     sockaddr_in sockInClient;
