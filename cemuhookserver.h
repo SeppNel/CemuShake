@@ -1,30 +1,28 @@
 #include "cemuhookprotocol.h"
-#include <thread>
-#include <netinet/in.h>
 #include <mutex>
-#include <vector>
+#include <netinet/in.h>
 #include <shared_mutex>
+#include <thread>
+#include <vector>
 
 using namespace cemuhook::protocol;
 
-class Server
-{
-    public:
+class Server {
+  public:
     Server();
+    void Start();
     void Stop();
 
     ~Server();
 
-    private:
-
-    struct Client
-    {
+  private:
+    struct Client {
         sockaddr_in address;
         uint32_t id;
         int sendTimeout;
 
-        bool operator==(sockaddr_in const& other);
-        bool operator!=(sockaddr_in const& other);
+        bool operator==(sockaddr_in const &other);
+        bool operator!=(sockaddr_in const &other);
     };
 
     bool stopServer = false;
@@ -34,11 +32,11 @@ class Server
 
     int socketFd;
 
+    std::unique_ptr<std::thread> sendThread;
     std::unique_ptr<std::thread> inputThread;
 
     void serverTask();
     void sendTask();
-    void Start();
     void inputTask();
 
     SharedResponse sharedResponse;
@@ -49,12 +47,11 @@ class Server
 
     void PrepareAnswerConstants();
 
-    std::pair<uint16_t , void const*> PrepareVersionAnswer(uint32_t const& id);
-    std::pair<uint16_t , void const*> PrepareInfoAnswer(uint8_t const& slot);
-    std::pair<uint16_t , void const*> PrepareDataAnswer(uint32_t const& packet);
-    void ModifyDataAnswerId(uint32_t const& id);
+    std::pair<uint16_t, void const *> PrepareVersionAnswer(uint32_t const &id);
+    std::pair<uint16_t, void const *> PrepareInfoAnswer(uint8_t const &slot);
+    std::pair<uint16_t, void const *> PrepareDataAnswer(uint32_t const &packet);
+    void ModifyDataAnswerId(uint32_t const &id);
     void CalcCrcDataAnswer();
 
     std::vector<Client> clients;
 };
-

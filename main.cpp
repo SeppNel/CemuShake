@@ -1,14 +1,20 @@
 #include "cemuhookserver.h"
 #include <csignal>
+#include <iostream>
+
+using std::cout;
 
 Server *serverPointer;
 
 void signalHandler(int signal) {
     if (signal == SIGINT) {
-        serverPointer->Stop();  // Stop the loop on Ctrl+C
+        cout << "\nCtrl + C Received, Stopping...\n";
+        serverPointer->Stop();
     }
 }
-int main(){
+int main() {
     std::signal(SIGINT, signalHandler);
     Server server;
+    serverPointer = &server;
+    server.Start();
 }

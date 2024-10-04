@@ -2,14 +2,13 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_gamecontroller.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-
 #include <algorithm>
+#include <arpa/inet.h>
 #include <chrono>
 #include <iostream>
 #include <sstream>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 using std::cout;
 using namespace std::chrono;
@@ -48,7 +47,6 @@ ssize_t SendPacket(int const &socketFd, std::pair<uint16_t, void const *> const 
 
 Server::Server() {
     PrepareAnswerConstants();
-    Start();
 }
 
 Server::~Server() {}
@@ -56,6 +54,10 @@ Server::~Server() {}
 void Server::Stop() {
     stopSending = true;
     stopServer = true;
+    inputThread->join();
+    if (sendThread.get() != nullptr) {
+        sendThread->join();
+    }
 }
 
 void Server::PrepareAnswerConstants() {
@@ -131,15 +133,10 @@ void Server::Start() {
         throw std::runtime_error("Server: Socket could not be created.");
 
     sockaddr_in sockAddr;
-
     sockAddr = sockaddr_in();
 
     sockAddr.sin_family = AF_INET;
-    if (const char *customPort = std::getenv("CEMUSHAKE_SERVER_PORT")) {
-        sockAddr.sin_port = htons(std::atoi(customPort));
-    } else {
-        sockAddr.sin_port = htons(PORT);
-    }
+    sockAddr.sin_port = htons(PORT);
     sockAddr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(socketFd, (sockaddr *)&sockAddr, sizeof(sockAddr)) < 0)
@@ -147,7 +144,7 @@ void Server::Start() {
 
     char ipStr[INET6_ADDRSTRLEN];
     ipStr[0] = 0;
-    // cout << "Server: Socket created at IP: " << GetIP(sockAddr,ipStr) << " Port: " << ntohs(sockAddr.sin_port) << ".";
+    cout << "Server: Socket created at IP: " << GetIP(sockAddr, ipStr) << " Port: " << ntohs(sockAddr.sin_port) << ".";
 
     char buf[BUFLEN];
     sockaddr_in sockInClient;
@@ -157,10 +154,9 @@ void Server::Start() {
 
     std::pair<uint16_t, void const *> outBuf;
 
-    std::unique_ptr<std::thread> sendThread;
     inputThread.reset(new std::thread(&Server::inputTask, this));
 
-    // cout << "Server: Start listening for client.\n";
+    cout << "Server: Start listening for client.\n";
 
     while (!stopServer) {
         auto recvLen = recvfrom(socketFd, buf, BUFLEN, 0, (sockaddr *)&sockInClient, &sockInClientLen);
