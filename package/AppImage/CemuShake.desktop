@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=CemuShake
+Exec=CemuShake %F
+Icon=icon
+Categories=Game;
