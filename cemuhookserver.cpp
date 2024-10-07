@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <chrono>
+#include <cstddef>
 #include <iostream>
 #include <sstream>
 #include <sys/socket.h>
@@ -13,7 +14,6 @@
 using std::cout;
 using namespace std::chrono;
 
-#define PORT 26760
 #define BUFLEN 100
 #define SERVER_ID 69
 #define MAIN_SLEEP_TIME_M 500
@@ -47,9 +47,19 @@ ssize_t SendPacket(int const &socketFd, std::pair<uint16_t, void const *> const 
 
 Server::Server() {
     PrepareAnswerConstants();
+    configButtons.emplace_back(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, false, 0.0f, 200.0f, 0.0f, 0.0f, 0.0f, 0.0f); // Default: RB = Shake up, no gyro;
 }
 
-Server::~Server() {}
+Server::Server(Config *c) {
+    PrepareAnswerConstants();
+    configStruct = c;
+    serverPort = c->port;
+    configButtons = c->buttons;
+}
+
+Server::~Server() {
+    delete configStruct;
+}
 
 void Server::Stop() {
     stopSending = true;
@@ -136,7 +146,7 @@ void Server::Start() {
     sockAddr = sockaddr_in();
 
     sockAddr.sin_family = AF_INET;
-    sockAddr.sin_port = htons(PORT);
+    sockAddr.sin_port = htons(serverPort);
     sockAddr.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(socketFd, (sockaddr *)&sockAddr, sizeof(sockAddr)) < 0)
@@ -252,25 +262,22 @@ std::pair<uint16_t, void const *> Server::PrepareDataAnswer(uint32_t const &pack
     dataAnswer.motion.yaw = 0;
     dataAnswer.motion.roll = 0;
 
-    if (inputPendingUp) {
-        if (dataAnswer.motion.accY == 200) {
-            dataAnswer.motion.accY = 0;
-            dataAnswer.motion.pitch = 0;
-        } else {
-            dataAnswer.motion.accY = 200;
-            dataAnswer.motion.pitch = -GYRO_STR;
+    bool pendingDone = false;
+    for (size_t i = 0; i < configButtons.size(); i++) {
+        if (configButtons[i].pending) {
+            dataAnswer.motion.accX = (dataAnswer.motion.accX == configButtons[i].accX) ? 0 : configButtons[i].accX;
+            dataAnswer.motion.accY = (dataAnswer.motion.accY == configButtons[i].accY) ? 0 : configButtons[i].accY;
+            dataAnswer.motion.accZ = (dataAnswer.motion.accZ == configButtons[i].accZ) ? 0 : configButtons[i].accZ;
+            dataAnswer.motion.pitch = (dataAnswer.motion.pitch == configButtons[i].pitch) ? 0 : configButtons[i].pitch;
+            dataAnswer.motion.yaw = (dataAnswer.motion.yaw == configButtons[i].yaw) ? 0 : configButtons[i].yaw;
+            dataAnswer.motion.roll = (dataAnswer.motion.roll == configButtons[i].roll) ? 0 : configButtons[i].roll;
+
+            configButtons[i].pending = false;
+            pendingDone = true;
         }
-        inputPendingUp = false;
-    } else if (inputPendingDown) {
-        if (dataAnswer.motion.accY == 200) {
-            dataAnswer.motion.accY = 0;
-            dataAnswer.motion.pitch = 0;
-        } else {
-            dataAnswer.motion.accY = 200;
-            dataAnswer.motion.pitch = GYRO_STR;
-        }
-        inputPendingDown = false;
-    } else {
+    }
+
+    if (!pendingDone) {
         dataAnswer.motion.accX = 0;
         dataAnswer.motion.accY = 0;
         dataAnswer.motion.accZ = 0;
@@ -316,12 +323,10 @@ void Server::inputTask() {
             }
         }
 
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
-            inputPendingUp = true;
-        }
-
-        if (SDL_GameControllerGetButton(controller, SDL_GameControllerButton::SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) {
-            inputPendingDown = true;
+        for (size_t i = 0; i < configButtons.size(); i++) {
+            if (SDL_GameControllerGetButton(controller, configButtons[i].button)) {
+                configButtons[i].pending = true;
+            }
         }
 
         std::this_thread::sleep_for(microseconds(THREAD_SLEEP_TIME_U));

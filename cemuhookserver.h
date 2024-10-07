@@ -1,4 +1,6 @@
 #include "cemuhookprotocol.h"
+#include "config.h"
+#include <cstddef>
 #include <mutex>
 #include <netinet/in.h>
 #include <shared_mutex>
@@ -10,6 +12,7 @@ using namespace cemuhook::protocol;
 class Server {
   public:
     Server();
+    Server(Config *c);
     void Start();
     void Stop();
 
@@ -25,10 +28,12 @@ class Server {
         bool operator!=(sockaddr_in const &other);
     };
 
+    Config *configStruct = nullptr;
+    uint serverPort = 26760;
+    std::vector<ConfiguredButton> configButtons;
+
     bool stopServer = false;
-    bool stopSending;
-    bool inputPendingUp = false;
-    bool inputPendingDown = false;
+    bool stopSending = false;
 
     int socketFd;
 

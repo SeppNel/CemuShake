@@ -2,7 +2,7 @@ appimageDir:="./package/AppImage"
 
 CemuShake:
 	mkdir -p build
-	g++ *.cpp -o build/CemuShake -Iinclude -lpthread -Llib -lSDL2 -lSDL2main
+	g++ *.cpp -o build/CemuShake -Iinclude -lpthread -Llib -lSDL2 -lSDL2main -lyaml-cpp
 
 run:
 	./build/CemuShake

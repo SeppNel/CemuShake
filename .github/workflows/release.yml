@@ -20,7 +20,7 @@ jobs:
       run: |
         sudo add-apt-repository universe
         sudo apt install libfuse2t64
-        sudo apt-get -y install libsdl2-dev
+        sudo apt-get -y install libsdl2-dev libyaml-cpp-dev 
     - name: Appimage
       run: make appimage
     - name: 'Upload Artifact'
