@@ -1,13 +1,15 @@
 # CemuShake
-Linux app to simulate a shake motion input with a standar controller using the cemuhook protocol.
+Linux app to simulate a shake motion input with a standard controller using the cemuhook protocol.
 
 Anything that uses the cemuhook (dsu) protocol should be compatible with this, if it lets you map a standard controller alongside this.  
 
 The main purpose for the development for this tool was to do motion exclusive throws in Mario Odyssey (Ryujinx).
 
 # Usage
-Configure your client (Ryujinx, Dolphin, etc...) like any other dsu client, with your ip and port 26760.  
+Configure your client (Ryujinx, Dolphin, etc...) like any other dsu client, with your ip and port 26760, or set up a custom port in the config file.  
 Turn on controller first, open CemuShake and open your client. It should work.
+
+By default RB (R1) is a shake with no gyro, to change this see the configuration section below.
 
 ## Configuration
 You can configure the actions and some stuff creating a yaml config file in your home folder. It should be in `$HOME/.config/CemuShake.yml`
@@ -16,7 +18,7 @@ Valid configs are:
 | Key | Value | Description |
 | :---: | :---: | :---: |
 | port | uint | Network port to use for the server |
-| buttons | list | list of actions with its correspending button, see table below to see how to add an entry |
+| buttons | list | List of actions with its correspending button, see table below to see how to add an entry |
 
 Buttons list elements:
 | Key | Value | Description |
@@ -54,10 +56,26 @@ Buttons id values:
 | 19 | Paddle 4 (Elite) | Not applicable |
 | 20 | Not applicable | Touchpad |
 
-
-
-For now shoulder buttons result in a shake (upwards or downwards) and cannot be remaped, but I plan to add configuration in the future.
-
+### Example config file
+```
+---
+port: 26760
+buttons:
+    - id: 9 # LB
+      accX: 0
+      accY: 200 # Shake Up
+      accZ: 0
+      pitch: -20 # Gyro backwards
+      yaw: 0
+      roll: 0
+    - id: 10 # RB
+      accX: 0
+      accY: 200 # Shake up
+      accZ: 0
+      pitch: 20 # Gyro forward
+      yaw: 0
+      roll: 0
+```
 # Building
 You need SDL2 for the controller and yaml-cpp for the config, so install those through your package manager as described in the dependencies section.
 
