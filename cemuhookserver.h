@@ -1,13 +1,14 @@
 #include "cemuhookprotocol.h"
 #include "config.h"
+#include "crossSockets.h"
+
 #include <cstddef>
 #include <mutex>
-#include <netinet/in.h>
 #include <shared_mutex>
 #include <thread>
 #include <vector>
 
-using namespace cemuhook::protocol;
+using namespace cemuhook_protocol;
 
 class Server {
   public:
@@ -40,7 +41,6 @@ class Server {
     std::unique_ptr<std::thread> sendThread;
     std::unique_ptr<std::thread> inputThread;
 
-    void serverTask();
     void sendTask();
     void inputTask();
 
@@ -52,10 +52,9 @@ class Server {
 
     void PrepareAnswerConstants();
 
-    std::pair<uint16_t, void const *> PrepareVersionAnswer(uint32_t const &id);
+    // std::pair<uint16_t, void const *> PrepareVersionAnswer(uint32_t const &id);
     std::pair<uint16_t, void const *> PrepareInfoAnswer(uint8_t const &slot);
     std::pair<uint16_t, void const *> PrepareDataAnswer(uint32_t const &packet);
-    void ModifyDataAnswerId(uint32_t const &id);
     void CalcCrcDataAnswer();
 
     std::vector<Client> clients;

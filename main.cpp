@@ -20,8 +20,15 @@ void signalHandler(int signal) {
 Config *readConfig() {
     Config *configStruct = new Config();
 
+#ifdef __unix__
     std::string homeDir = getenv("HOME");
     std::string configPath = homeDir + "/.config/CemuShake.yml";
+#endif
+
+#ifdef _WIN32
+    std::string configPath = "CemuShake.yml";
+#endif
+
     try {
         YAML::Node configFile = YAML::LoadFile(configPath);
 

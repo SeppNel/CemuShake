@@ -1,100 +1,90 @@
 #include <cstdint>
 
-namespace cemuhook::protocol
-{
-    #pragma pack(push, 1)
-    struct Header
-    {
-        char magic[4]; // DSUS - server, DSUC - client
-        uint16_t version; // 1001
-        uint16_t length; // without header
-        uint32_t crc32; // whole packet with this field = 0
-        uint32_t id; // of packet source, constant among one run
-        uint32_t eventType; // no part of the header where length is involved
-        // event types:
-        //  0x100000 - protocol version information
-        //  0x100001 - information about connected controllers
-        //  0x100002 - actual controllers data
-    };
-    
+namespace cemuhook_protocol {
+#pragma pack(push, 1)
+struct Header {
+    char magic[4];      // DSUS - server, DSUC - client
+    uint16_t version;   // 1001
+    uint16_t length;    // without header
+    uint32_t crc32;     // whole packet with this field = 0
+    uint32_t id;        // of packet source, constant among one run
+    uint32_t eventType; // no part of the header where length is involved
+    // event types:
+    //  0x100000 - protocol version information
+    //  0x100001 - information about connected controllers
+    //  0x100002 - actual controllers data
+};
 
-    struct VersionInformation
-    {
-        Header header;
-        uint16_t version;
-    };
+struct VersionInformation {
+    Header header;
+    uint16_t version;
+};
 
-    struct SharedResponse
-    {
-        uint8_t slot;
-        uint8_t slotState; // 0 - not connected, 1 - reserved, 2 - connected
-        uint8_t deviceModel; // 0 - not applicable, 1 - no or partial gyro, 2 - full gyro, 3 - do not use
-        uint8_t connection; // 0 - not applicable, 1 - USB, 2 - bluetooth
-        uint32_t mac1; // unused - 0
-        uint16_t mac2; // unused - 0
-        uint8_t battery; // unused - 0
-    };
+struct SharedResponse {
+    uint8_t slot;
+    uint8_t slotState;   // 0 - not connected, 1 - reserved, 2 - connected
+    uint8_t deviceModel; // 0 - not applicable, 1 - no or partial gyro, 2 - full gyro, 3 - do not use
+    uint8_t connection;  // 0 - not applicable, 1 - USB, 2 - bluetooth
+    uint32_t mac1;       // unused - 0
+    uint16_t mac2;       // unused - 0
+    uint8_t battery;     // unused - 0
+};
 
-    struct InfoRequest
-    {
-        int32_t portCnt; // amount of ports to report
-        uint8_t slots[4];
-    };
+struct InfoRequest {
+    int32_t portCnt; // amount of ports to report
+    uint8_t slots[4];
+};
 
-    struct InfoAnswer
-    {
-        Header header;
-        SharedResponse response;
-        uint8_t zero;
-    };
+struct InfoAnswer {
+    Header header;
+    SharedResponse response;
+    uint8_t zero;
+};
 
-    struct SubscribeRequest
-    {
-        uint8_t mask; // 1 slot-based, 2 - mac-base, 3 - both, 0 - all controllers
-        uint8_t slot; // slot to subscribe
-        uint32_t mac1; // unused
-        uint16_t mac2; // unused
-    };
+struct SubscribeRequest {
+    uint8_t mask;  // 1 slot-based, 2 - mac-base, 3 - both, 0 - all controllers
+    uint8_t slot;  // slot to subscribe
+    uint32_t mac1; // unused
+    uint16_t mac2; // unused
+};
 
-    struct MotionData
-    {
-        uint64_t timestamp;
-        float accX;
-        float accY;
-        float accZ;
-        float pitch;
-        float yaw;
-        float roll;
-    };
+struct MotionData {
+    uint64_t timestamp;
+    float accX;
+    float accY;
+    float accZ;
+    float pitch;
+    float yaw;
+    float roll;
+};
 
-    struct DataEvent
-    {
-        Header header;
-        SharedResponse response;
-        uint8_t connected;
-        uint32_t packetNumber;
-        uint8_t buttons1;
-        uint8_t buttons2;
-        uint8_t homeButton;
-        uint8_t touchButton;
-        uint8_t lsX;
-        uint8_t lsY;
-        uint8_t rsX;
-        uint8_t rsY;
-        uint8_t adLeft;
-        uint8_t adDown;
-        uint8_t adRight;
-        uint8_t adUp;
-        uint8_t aY;
-        uint8_t aB;
-        uint8_t aA;
-        uint8_t aX;
-        uint8_t aR1;
-        uint8_t aL1;
-        uint8_t aR2;
-        uint8_t aL2;
-        uint32_t touch[3];
-        MotionData motion;
-    };
-    #pragma pack(pop)
-}
+struct DataEvent {
+    Header header;
+    SharedResponse response;
+    uint8_t connected;
+    uint32_t packetNumber;
+    uint8_t buttons1;
+    uint8_t buttons2;
+    uint8_t homeButton;
+    uint8_t touchButton;
+    uint8_t lsX;
+    uint8_t lsY;
+    uint8_t rsX;
+    uint8_t rsY;
+    uint8_t adLeft;
+    uint8_t adDown;
+    uint8_t adRight;
+    uint8_t adUp;
+    uint8_t aY;
+    uint8_t aB;
+    uint8_t aA;
+    uint8_t aX;
+    uint8_t aR1;
+    uint8_t aL1;
+    uint8_t aR2;
+    uint8_t aL2;
+    uint32_t touch[3];
+    MotionData motion;
+};
+#pragma pack(pop)
+} // namespace cemuhook_protocol

@@ -3,12 +3,10 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_gamecontroller.h>
 #include <algorithm>
-#include <arpa/inet.h>
 #include <chrono>
 #include <cstddef>
 #include <iostream>
 #include <sstream>
-#include <sys/socket.h>
 #include <sys/types.h>
 
 using std::cout;
@@ -24,10 +22,6 @@ using namespace std::chrono;
 #define INFO_TYPE 0x100001
 #define DATA_TYPE 0x100002
 
-const char *GetIP(sockaddr_in const &addr, char *buf) {
-    return inet_ntop(addr.sin_family, &(addr.sin_addr.s_addr), buf, INET6_ADDRSTRLEN);
-}
-
 uint32_t crc32(const unsigned char *s, size_t n) {
     uint32_t crc = 0xFFFFFFFF;
 
@@ -39,10 +33,6 @@ uint32_t crc32(const unsigned char *s, size_t n) {
             crc = crc & 1 ? (crc >> 1) ^ 0xedb88320 : crc >> 1;
     }
     return ~crc;
-}
-
-ssize_t SendPacket(int const &socketFd, std::pair<uint16_t, void const *> const &outBuf, sockaddr_in const &sockInClient) {
-    return sendto(socketFd, outBuf.second, outBuf.first, 0, (sockaddr *)&sockInClient, sizeof(sockInClient));
 }
 
 Server::Server() {
@@ -132,12 +122,11 @@ void Server::PrepareAnswerConstants() {
 void Server::Start() {
     cout << "Server: Initializing.\n";
 
+    crossSockets::initializeSockets();
+
     socketFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    timeval read_timeout;
-    read_timeout.tv_sec = 2;
-    read_timeout.tv_usec = 0;
-    setsockopt(socketFd, SOL_SOCKET, SO_RCVTIMEO, &read_timeout, sizeof(read_timeout));
+    crossSockets::setSocketOptionsTimeout(socketFd, 2);
 
     if (socketFd == -1)
         throw std::runtime_error("Server: Socket could not be created.");
@@ -154,7 +143,7 @@ void Server::Start() {
 
     char ipStr[INET6_ADDRSTRLEN];
     ipStr[0] = 0;
-    cout << "Server: Socket created at IP: " << GetIP(sockAddr, ipStr) << " Port: " << ntohs(sockAddr.sin_port) << ".\n";
+    cout << "Server: Socket created at IP: " << crossSockets::GetIP(sockAddr, ipStr) << " Port: " << ntohs(sockAddr.sin_port) << ".\n";
 
     char buf[BUFLEN];
     sockaddr_in sockInClient;
@@ -174,7 +163,7 @@ void Server::Start() {
             Header &header = *reinterpret_cast<Header *>(buf);
 
             std::ostringstream addressTextStream;
-            addressTextStream << "IP: " << GetIP(sockInClient, ipStr) << " Port: " << ntohs(sockInClient.sin_port);
+            addressTextStream << "IP: " << crossSockets::GetIP(sockInClient, ipStr) << " Port: " << ntohs(sockInClient.sin_port);
             auto addressText = addressTextStream.str();
 
             switch (header.eventType) {
@@ -186,7 +175,7 @@ void Server::Start() {
                 InfoRequest &req = *reinterpret_cast<InfoRequest *>(buf + headerSize);
                 for (int i = 0; i < req.portCnt; i++) {
                     outBuf = PrepareInfoAnswer(req.slots[i]);
-                    SendPacket(socketFd, outBuf, sockInClient);
+                    crossSockets::SendPacket(socketFd, outBuf, sockInClient);
                 }
             } break;
             case DATA_TYPE:
@@ -239,7 +228,7 @@ void Server::sendTask() {
     while (!stopSending) {
         outBuf = PrepareDataAnswer(++packet);
         for (auto &client : clients) {
-            SendPacket(socketFd, outBuf, client.address);
+            crossSockets::SendPacket(socketFd, outBuf, client.address);
         }
         std::this_thread::sleep_for(microseconds(THREAD_SLEEP_TIME_U));
     }
@@ -306,6 +295,7 @@ SDL_GameController *findController() {
 }
 
 void Server::inputTask() {
+    SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
     if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
         cout << "SDL could not initialize! SDL Error: " << SDL_GetError() << std::endl;
         return;
