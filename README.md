@@ -1,5 +1,5 @@
 # CemuShake
-Linux app to simulate a shake motion input with a standard controller using the cemuhook protocol.
+Linux and Windows app to simulate a shake motion input with a standard controller using the cemuhook protocol.
 
 Anything that uses the cemuhook (dsu) protocol should be compatible with this, if it lets you map a standard controller alongside this.  
 
@@ -77,15 +77,20 @@ buttons:
       roll: 0
 ```
 # Building
-You need SDL2 for the controller and yaml-cpp for the config, so install those through your package manager as described in the dependencies section.
+You need SDL2 for the controller and yaml-cpp for the config, so install those through your package manager or with vcpkg as described in the dependencies section.
 
-Then you just need to run `make`
+On linux you just need to run `make`  
+On Windows for now you need to set up a VS project, import the files and compile.
+
 ## Dependencies
 For ubuntu:  
 `sudo apt-get install libsdl2-dev libyaml-cpp-dev`
 
 For Fedora:  
 `sudo dnf install SDL2-devel yaml-cpp-devel`
+
+For Windows (vcpkg):  
+`vcpkg install sdl2 yaml-cpp`
 
 # Acknowledgements
 [Valeri](https://github.com/v1993) for his documentation [Cemuhook-Protocol](https://github.com/v1993/cemuhook-protocol)  
