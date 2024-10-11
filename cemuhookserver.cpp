@@ -251,7 +251,6 @@ std::pair<uint16_t, void const *> Server::PrepareDataAnswer(uint32_t const &pack
     dataAnswer.motion.yaw = 0;
     dataAnswer.motion.roll = 0;
 
-    bool pendingDone = false;
     for (size_t i = 0; i < configButtons.size(); i++) {
         if (configButtons[i].pending) {
             dataAnswer.motion.accX = (dataAnswer.motion.accX == configButtons[i].accX) ? 0 : configButtons[i].accX;
@@ -260,16 +259,7 @@ std::pair<uint16_t, void const *> Server::PrepareDataAnswer(uint32_t const &pack
             dataAnswer.motion.pitch = (dataAnswer.motion.pitch == configButtons[i].pitch) ? 0 : configButtons[i].pitch;
             dataAnswer.motion.yaw = (dataAnswer.motion.yaw == configButtons[i].yaw) ? 0 : configButtons[i].yaw;
             dataAnswer.motion.roll = (dataAnswer.motion.roll == configButtons[i].roll) ? 0 : configButtons[i].roll;
-
-            configButtons[i].pending = false;
-            pendingDone = true;
         }
-    }
-
-    if (!pendingDone) {
-        dataAnswer.motion.accX = 0;
-        dataAnswer.motion.accY = 0;
-        dataAnswer.motion.accZ = 0;
     }
 
     CalcCrcDataAnswer();
@@ -316,6 +306,8 @@ void Server::inputTask() {
         for (size_t i = 0; i < configButtons.size(); i++) {
             if (SDL_GameControllerGetButton(controller, configButtons[i].button)) {
                 configButtons[i].pending = true;
+            } else {
+                configButtons[i].pending = false;
             }
         }
 
