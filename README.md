@@ -7,7 +7,7 @@ The main purpose for the development for this tool was to do motion exclusive th
 
 # Usage
 Configure your client (Ryujinx, Dolphin, etc...) like any other dsu client, with your ip and port 26760, or set up a custom port in the config file.  
-Turn on controller first, open CemuShake and open your client. It should work.
+Turn on controller, open CemuShake and open your client. It should work.
 
 By default RB (R1) is a shake with no gyro, to change this see the configuration section below.
 

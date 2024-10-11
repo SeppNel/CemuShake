@@ -15,8 +15,8 @@ using namespace std::chrono;
 #define BUFLEN 100
 #define SERVER_ID 69
 #define MAIN_SLEEP_TIME_M 500
-#define THREAD_SLEEP_TIME_U 50
-#define GYRO_STR 20
+#define THREAD_SLEEP_TIME_M 5
+#define CONTROLLER_WAIT_M 1000
 
 #define VERSION_TYPE 0x100000
 #define INFO_TYPE 0x100001
@@ -145,15 +145,14 @@ void Server::Start() {
     ipStr[0] = 0;
     cout << "Server: Socket created at IP: " << crossSockets::GetIP(sockAddr, ipStr) << " Port: " << ntohs(sockAddr.sin_port) << ".\n";
 
+    // Start input thread
+    inputThread.reset(new std::thread(&Server::inputTask, this));
+
     char buf[BUFLEN];
     sockaddr_in sockInClient;
     socklen_t sockInClientLen = sizeof(sockInClient);
-
     ssize_t headerSize = (ssize_t)sizeof(Header);
-
     std::pair<uint16_t, void const *> outBuf;
-
-    inputThread.reset(new std::thread(&Server::inputTask, this));
 
     cout << "Server: Start listening for client.\n";
 
@@ -230,7 +229,7 @@ void Server::sendTask() {
         for (auto &client : clients) {
             crossSockets::SendPacket(socketFd, outBuf, client.address);
         }
-        std::this_thread::sleep_for(microseconds(THREAD_SLEEP_TIME_U));
+        std::this_thread::sleep_for(milliseconds(THREAD_SLEEP_TIME_M));
     }
 }
 
@@ -275,6 +274,7 @@ void Server::CalcCrcDataAnswer() {
 }
 
 SDL_GameController *findController() {
+    SDL_JoystickUpdate();
     for (int i = 0; i < SDL_NumJoysticks(); i++) {
         if (SDL_IsGameController(i)) {
             return SDL_GameControllerOpen(i);
@@ -285,6 +285,7 @@ SDL_GameController *findController() {
 }
 
 void Server::inputTask() {
+    // Initialize SDL
     SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
     if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
         cout << "SDL could not initialize! SDL Error: " << SDL_GetError() << std::endl;
@@ -294,12 +295,30 @@ void Server::inputTask() {
     SDL_Event event;
     SDL_GameController *controller = findController();
 
+    while (controller == nullptr && !stopServer) {
+        controller = findController();
+        std::this_thread::sleep_for(milliseconds(CONTROLLER_WAIT_M));
+    }
+
     while (!stopServer) {
+        // SDL_PollEvents should be in the main thread, but for some reason when moving it it becomes extremelly laggy
         while (SDL_PollEvent(&event)) {
             // Check for quit events
             if (event.type == SDL_QUIT) {
                 SDL_Quit();
                 return;
+            } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
+                cout << "Controller disconnected\n";
+                if (controller && event.cdevice.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller))) {
+                    SDL_GameControllerClose(controller);
+                    controller = findController();
+                    while (controller == nullptr && !stopServer) {
+                        controller = findController();
+                        std::this_thread::sleep_for(milliseconds(CONTROLLER_WAIT_M));
+                    }
+                    if (!stopServer)
+                        cout << "Controller reconnected\n";
+                }
             }
         }
 
@@ -311,7 +330,7 @@ void Server::inputTask() {
             }
         }
 
-        std::this_thread::sleep_for(microseconds(THREAD_SLEEP_TIME_U));
+        std::this_thread::sleep_for(milliseconds(THREAD_SLEEP_TIME_M));
     }
 
     SDL_Quit();
