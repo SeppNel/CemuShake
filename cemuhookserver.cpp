@@ -8,15 +8,17 @@
 #include <iostream>
 #include <sstream>
 #include <sys/types.h>
+#include <vector>
 
 using std::cout;
 using namespace std::chrono;
 
-#define BUFLEN 100
+#define BUFLEN 50
 #define SERVER_ID 69
 #define MAIN_SLEEP_TIME_M 500
 #define THREAD_SLEEP_TIME_M 5
 #define CONTROLLER_WAIT_M 1000
+#define CLIENT_TIMEOUT 40 // 20 Seconds ((MAIN_SLEEP_TIME_M + socketTimeout) * CLIENT_TIMEOUT / 1000)
 
 #define VERSION_TYPE 0x100000
 #define INFO_TYPE 0x100001
@@ -127,6 +129,7 @@ void Server::Start() {
     socketFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     crossSockets::setSocketOptionsTimeout(socketFd, 2);
+    crossSockets::setSocketToNonBlocking(socketFd);
 
     if (socketFd == -1)
         throw std::runtime_error("Server: Socket could not be created.");
@@ -201,7 +204,21 @@ void Server::Start() {
             }
         }
 
+        handleClientsTimeout();
+
         std::this_thread::sleep_for(milliseconds(MAIN_SLEEP_TIME_M));
+    }
+}
+
+void Server::handleClientsTimeout() {
+    for (auto it = clients.begin(); it != clients.end();) {
+        it->sendTimeout++;
+        if (it->sendTimeout >= CLIENT_TIMEOUT) {
+            it = clients.erase(it);
+            cout << "Client timed out\n";
+        } else {
+            ++it;
+        }
     }
 }
 
@@ -301,7 +318,7 @@ void Server::inputTask() {
     }
 
     while (!stopServer) {
-        // SDL_PollEvents should be in the main thread, but for some reason when moving it it becomes extremelly laggy
+        // SDL_PollEvents should be in the main thread, but because of the blocking recvfrom call (2 sec timeout) it becomes extremelly laggy
         while (SDL_PollEvent(&event)) {
             // Check for quit events
             if (event.type == SDL_QUIT) {

@@ -50,4 +50,22 @@ void initializeSockets() {
     return;
 }
 
+void setSocketToNonBlocking(int &socketFd) {
+#ifdef __unix__
+    int flags = fcntl(socketFd, F_GETFL, 0);
+
+    if (fcntl(socketFd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        std::cout << "fcntl(F_SETFL) failed\n";
+    }
+    return;
+#endif
+#ifdef _WIN32
+    u_long mode = 1; // 1 for non-blocking, 0 for blocking
+    if (ioctlsocket(socketFd, FIONBIO, &mode) != 0) {
+        std::cout << "ioctlsocket() failed\n";
+    }
+    return;
+#endif
+}
+
 } // namespace crossSockets

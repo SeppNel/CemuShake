@@ -58,4 +58,5 @@ class Server {
     void CalcCrcDataAnswer();
 
     std::vector<Client> clients;
+    void handleClientsTimeout();
 };
