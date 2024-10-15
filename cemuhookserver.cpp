@@ -131,6 +131,13 @@ void Server::Start() {
     crossSockets::setSocketOptionsTimeout(socketFd, 2);
     crossSockets::setSocketToNonBlocking(socketFd);
 
+    // Workaround windows udp bug https://stackoverflow.com/questions/34242622/windows-udp-sockets-recvfrom-fails-with-error-10054
+#ifdef _WIN32
+    BOOL bNewBehavior = FALSE;
+    DWORD dwBytesReturned = 0;
+    WSAIoctl(socketFd, SIO_UDP_CONNRESET, &bNewBehavior, sizeof bNewBehavior, NULL, 0, &dwBytesReturned, NULL, NULL);
+#endif
+
     if (socketFd == -1)
         throw std::runtime_error("Server: Socket could not be created.");
 
