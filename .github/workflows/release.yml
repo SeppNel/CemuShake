@@ -20,7 +20,7 @@ jobs:
       run: |
         sudo add-apt-repository universe
         sudo apt install libfuse2t64
-        sudo apt-get -y install libsdl2-dev libyaml-cpp-dev 
+        sudo apt-get -y install libsdl2-dev libyaml-cpp-dev
     - name: Appimage
       run: make appimage
     - name: 'Upload Artifact'
@@ -66,7 +66,7 @@ jobs:
         git push origin latest --force
 
     - name: Create or update GitHub Release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         tag_name: latest
         files: CemuShake-x86_64.AppImage
