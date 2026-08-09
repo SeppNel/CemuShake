@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <sstream>
 #include <sys/types.h>
@@ -15,10 +16,9 @@ using namespace std::chrono;
 
 #define BUFLEN 50
 #define SERVER_ID 69
-#define MAIN_SLEEP_TIME_M 500
-#define THREAD_SLEEP_TIME_M 5
-#define CONTROLLER_WAIT_M 1000
-#define CLIENT_TIMEOUT 40 // 20 Seconds ((MAIN_SLEEP_TIME_M + socketTimeout) * CLIENT_TIMEOUT / 1000)
+#define MAIN_SLEEP_TIME_MS 500
+#define THREAD_SLEEP_TIME_MS 5
+#define CLIENT_TIMEOUT 40 // 20 Seconds ((MAIN_SLEEP_TIME_MS + socketTimeout) * CLIENT_TIMEOUT / 1000)
 
 #define VERSION_TYPE 0x100000
 #define INFO_TYPE 0x100001
@@ -37,28 +37,25 @@ uint32_t crc32(const unsigned char *s, size_t n) {
     return ~crc;
 }
 
-Server::Server() {
+Server::Server(uint32_t port, Gamepad *g) {
     PrepareAnswerConstants();
-    configButtons.emplace_back(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, false, 0.0f, 200.0f, 0.0f, 0.0f, 0.0f, 0.0f); // Default: RB = Shake up, no gyro;
+    serverPort = port;
+    gamepad = g;
 }
 
-Server::Server(Config *c) {
-    PrepareAnswerConstants();
-    configStruct = c;
-    serverPort = c->port;
-    configButtons = c->buttons;
-}
-
-Server::~Server() {
-    delete configStruct;
+void Server::Start() {
+    stopFlag = false;
+    runThread.reset(new std::thread(&Server::run, this));
+    sendThread.reset(new std::thread(&Server::sendTask, this));
 }
 
 void Server::Stop() {
-    stopSending = true;
-    stopServer = true;
-    inputThread->join();
+    stopFlag = true;
     if (sendThread.get() != nullptr) {
         sendThread->join();
+    }
+    if (runThread.get() != nullptr) {
+        runThread->join();
     }
 }
 
@@ -121,7 +118,7 @@ void Server::PrepareAnswerConstants() {
     dataAnswer.motion.roll = 0;
 }
 
-void Server::Start() {
+void Server::run() {
     cout << "Server: Initializing.\n";
 
     crossSockets::initializeSockets();
@@ -155,9 +152,6 @@ void Server::Start() {
     ipStr[0] = 0;
     cout << "Server: Socket created at IP: " << crossSockets::GetIP(sockAddr, ipStr) << " Port: " << ntohs(sockAddr.sin_port) << ".\n";
 
-    // Start input thread
-    inputThread.reset(new std::thread(&Server::inputTask, this));
-
     char buf[BUFLEN];
     sockaddr_in sockInClient;
     socklen_t sockInClientLen = sizeof(sockInClient);
@@ -166,7 +160,7 @@ void Server::Start() {
 
     cout << "Server: Start listening for client.\n";
 
-    while (!stopServer) {
+    while (!stopFlag) {
         auto recvLen = recvfrom(socketFd, buf, BUFLEN, 0, (sockaddr *)&sockInClient, &sockInClientLen);
         if (recvLen >= headerSize) {
             Header &header = *reinterpret_cast<Header *>(buf);
@@ -198,11 +192,6 @@ void Server::Start() {
                     newClient.sendTimeout = 0;
 
                     cout << "Server: New client subscribed. " << addressText << ".\n";
-
-                    if (sendThread.get() == nullptr) {
-                        stopSending = false;
-                        sendThread.reset(new std::thread(&Server::sendTask, this));
-                    }
                 } else {
                     // cout << "Server: Request for data from existing client. " << addressText << ".\n";
                     client->sendTimeout = 0;
@@ -213,7 +202,7 @@ void Server::Start() {
 
         handleClientsTimeout();
 
-        std::this_thread::sleep_for(milliseconds(MAIN_SLEEP_TIME_M));
+        std::this_thread::sleep_for(milliseconds(MAIN_SLEEP_TIME_MS));
     }
 }
 
@@ -248,12 +237,12 @@ void Server::sendTask() {
     std::pair<uint16_t, void const *> outBuf;
     uint32_t packet = 0;
 
-    while (!stopSending) {
+    while (!stopFlag) {
         outBuf = PrepareDataAnswer(++packet);
         for (auto &client : clients) {
             crossSockets::SendPacket(socketFd, outBuf, client.address);
         }
-        std::this_thread::sleep_for(milliseconds(THREAD_SLEEP_TIME_M));
+        std::this_thread::sleep_for(milliseconds(THREAD_SLEEP_TIME_MS));
     }
 }
 
@@ -273,6 +262,19 @@ std::pair<uint16_t, void const *> Server::PrepareDataAnswer(uint32_t const &pack
     dataAnswer.motion.pitch = 0;
     dataAnswer.motion.yaw = 0;
     dataAnswer.motion.roll = 0;
+
+    static uint16_t automatic_cnt = 0;
+    if (gamepad->IsAutomaticShakeActive()) {
+        if (automatic_cnt % 2 == 0) {
+            dataAnswer.motion.accX = 500;
+        }
+
+        automatic_cnt++;
+    } else {
+        automatic_cnt = 0;
+    }
+
+    std::vector<ConfiguredButton> configButtons = gamepad->GetButtonStates();
 
     for (size_t i = 0; i < configButtons.size(); i++) {
         if (configButtons[i].pending) {
@@ -295,69 +297,6 @@ void Server::CalcCrcDataAnswer() {
 
     dataAnswer.header.crc32 = 0;
     dataAnswer.header.crc32 = crc32(reinterpret_cast<unsigned char *>(&dataAnswer), len);
-}
-
-SDL_GameController *findController() {
-    SDL_JoystickUpdate();
-    for (int i = 0; i < SDL_NumJoysticks(); i++) {
-        if (SDL_IsGameController(i)) {
-            return SDL_GameControllerOpen(i);
-        }
-    }
-
-    return nullptr;
-}
-
-void Server::inputTask() {
-    // Initialize SDL
-    SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
-    if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
-        cout << "SDL could not initialize! SDL Error: " << SDL_GetError() << std::endl;
-        return;
-    }
-
-    SDL_Event event;
-    SDL_GameController *controller = findController();
-
-    while (controller == nullptr && !stopServer) {
-        controller = findController();
-        std::this_thread::sleep_for(milliseconds(CONTROLLER_WAIT_M));
-    }
-
-    while (!stopServer) {
-        // SDL_PollEvents should be in the main thread, but because of the blocking recvfrom call (2 sec timeout) it becomes extremelly laggy
-        while (SDL_PollEvent(&event)) {
-            // Check for quit events
-            if (event.type == SDL_QUIT) {
-                SDL_Quit();
-                return;
-            } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
-                cout << "Controller disconnected\n";
-                if (controller && event.cdevice.which == SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller))) {
-                    SDL_GameControllerClose(controller);
-                    controller = findController();
-                    while (controller == nullptr && !stopServer) {
-                        controller = findController();
-                        std::this_thread::sleep_for(milliseconds(CONTROLLER_WAIT_M));
-                    }
-                    if (!stopServer)
-                        cout << "Controller reconnected\n";
-                }
-            }
-        }
-
-        for (size_t i = 0; i < configButtons.size(); i++) {
-            if (SDL_GameControllerGetButton(controller, configButtons[i].button)) {
-                configButtons[i].pending = true;
-            } else {
-                configButtons[i].pending = false;
-            }
-        }
-
-        std::this_thread::sleep_for(milliseconds(THREAD_SLEEP_TIME_M));
-    }
-
-    SDL_Quit();
 }
 
 bool Server::Client::operator==(sockaddr_in const &other) {

@@ -1,5 +1,6 @@
 #include "cemuhookserver.h"
 #include "config.h"
+#include "gamepad.h"
 #include <csignal>
 #include <iostream>
 #include <string>
@@ -7,13 +8,16 @@
 #include <yaml-cpp/yaml.h>
 
 using std::cout;
+using namespace std::chrono;
 
-Server *serverPointer;
+#define SLEEP_TIME_MS 100
+
+bool stopFlag = false;
 
 void signalHandler(int signal) {
     if (signal == SIGINT) {
         cout << "\nCtrl + C Received, Stopping...\n";
-        serverPointer->Stop();
+        stopFlag = true;
     }
 }
 
@@ -55,8 +59,41 @@ Config *readConfig() {
 
 int main() {
     std::signal(SIGINT, signalHandler);
+
+    // Initialize SDL
+    SDL_SetHint(SDL_HINT_JOYSTICK_THREAD, "1");
+    if (SDL_Init(SDL_INIT_GAMECONTROLLER) < 0) {
+        cout << "SDL could not initialize! SDL Error: " << SDL_GetError() << std::endl;
+        return 1;
+    }
+
     Config *configStruct = readConfig();
-    Server server(configStruct);
-    serverPointer = &server;
+    if (configStruct->buttons.size() == 0) {
+        configStruct->buttons.emplace_back(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, false, 0.0f, 200.0f, 0.0f, 0.0f, 0.0f, 0.0f); // Default: RB = Shake up, no gyro;
+    }
+
+    Gamepad gamepad(configStruct->buttons);
+    gamepad.Start();
+    Server server(configStruct->port, &gamepad);
     server.Start();
+
+    SDL_Event event;
+    while (!stopFlag) {
+        while (SDL_PollEvent(&event)) {
+            // Check for quit events
+            if (event.type == SDL_QUIT) {
+                stopFlag = true;
+                break;
+            } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
+                gamepad.HandleControllerDisconnected(event);
+            }
+        }
+
+        std::this_thread::sleep_for(milliseconds(SLEEP_TIME_MS));
+    }
+
+    server.Stop();
+    gamepad.Stop();
+    SDL_Quit();
+    return 0;
 }

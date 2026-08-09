@@ -1,6 +1,7 @@
 #include "cemuhookprotocol.h"
 #include "config.h"
 #include "crossSockets.h"
+#include "gamepad.h"
 
 #include <cstddef>
 #include <mutex>
@@ -12,12 +13,9 @@ using namespace cemuhook_protocol;
 
 class Server {
   public:
-    Server();
-    Server(Config *c);
+    explicit Server(uint32_t port, Gamepad *gamepad);
     void Start();
     void Stop();
-
-    ~Server();
 
   private:
     struct Client {
@@ -29,20 +27,18 @@ class Server {
         bool operator!=(sockaddr_in const &other);
     };
 
-    Config *configStruct = nullptr;
-    uint serverPort = 26760;
-    std::vector<ConfiguredButton> configButtons;
+    uint32_t serverPort = 26760;
+    Gamepad *gamepad = nullptr;
 
-    bool stopServer = false;
-    bool stopSending = false;
+    bool stopFlag = false;
 
     int socketFd;
 
     std::unique_ptr<std::thread> sendThread;
-    std::unique_ptr<std::thread> inputThread;
+    std::unique_ptr<std::thread> runThread;
 
+    void run();
     void sendTask();
-    void inputTask();
 
     SharedResponse sharedResponse;
     VersionInformation versionAnswer;

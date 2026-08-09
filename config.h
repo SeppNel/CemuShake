@@ -1,10 +1,7 @@
+#pragma once
 #include <SDL2/SDL_gamecontroller.h>
 #include <cstdint>
 #include <vector>
-
-#pragma once
-
-typedef unsigned int uint;
 
 struct ConfiguredButton {
     SDL_GameControllerButton button;
@@ -40,6 +37,6 @@ struct ConfiguredButton {
 };
 
 struct Config {
-    uint port = 26760;
+    uint32_t port = 26760;
     std::vector<ConfiguredButton> buttons;
 };
