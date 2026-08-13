@@ -3,7 +3,7 @@
 
 #define CONTROLLER_WAIT_MS 1000
 #define THREAD_SLEEP_TIME_MS 5
-#define AUTO_SHAKE_DUR_MS 5000
+#define AUTO_SHAKE_DUR_MS 4000
 constexpr uint16_t AUTO_SHAKE_DUR = AUTO_SHAKE_DUR_MS / THREAD_SLEEP_TIME_MS;
 
 using std::cout;
@@ -37,8 +37,7 @@ void Gamepad::Stop() {
     }
 }
 
-std::vector<ConfiguredButton> Gamepad::GetButtonStates() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+std::vector<ConfiguredButton> &Gamepad::GetButtonStates() {
     return configButtons_;
 }
 
@@ -66,8 +65,6 @@ void Gamepad::processAutoShake() {
 }
 
 void Gamepad::run() {
-    SDL_Event event;
-
     while (!stopFlag_) {
         if (controller_ == nullptr) {
             controller_ = findController();
@@ -79,13 +76,13 @@ void Gamepad::run() {
                 cout << "Controller reconnected\n";
         }
 
+        SDL_GameControllerUpdate();
+
         processAutoShake();
 
         for (size_t i = 0; i < configButtons_.size(); i++) {
             if (SDL_GameControllerGetButton(controller_, configButtons_[i].button)) {
                 configButtons_[i].pending = true;
-            } else {
-                configButtons_[i].pending = false;
             }
         }
 

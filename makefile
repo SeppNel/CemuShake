@@ -1,8 +1,27 @@
 appimageDir:="./package/AppImage"
 
-CemuShake:
+CXXFLAGS:=-O2 -Iinclude -MMD -MP
+LDFLAGS:=-Llib
+LDLIBS:=-lpthread -lSDL2 -lSDL2main -lyaml-cpp
+
+SRCS:=$(wildcard *.cpp)
+OBJS:=$(SRCS:%.cpp=build/%.o)
+DEPS:=$(OBJS:.o=.d)
+
+.PHONY: CemuShake run clean appimage
+
+CemuShake: build/CemuShake
+
+build/CemuShake: $(OBJS)
+	g++ $(OBJS) -o build/CemuShake $(LDFLAGS) $(LDLIBS)
+
+build/%.o: %.cpp | build
+	g++ $(CXXFLAGS) -c $< -o $@
+
+build:
 	mkdir -p build
-	g++ *.cpp -o build/CemuShake -O2 -Iinclude -lpthread -Llib -lSDL2 -lSDL2main -lyaml-cpp
+
+-include $(DEPS)
 
 run: CemuShake
 	./build/CemuShake

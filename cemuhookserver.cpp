@@ -24,6 +24,8 @@ using namespace std::chrono;
 #define INFO_TYPE 0x100001
 #define DATA_TYPE 0x100002
 
+namespace {
+
 uint32_t crc32(const unsigned char *s, size_t n) {
     uint32_t crc = 0xFFFFFFFF;
 
@@ -37,10 +39,22 @@ uint32_t crc32(const unsigned char *s, size_t n) {
     return ~crc;
 }
 
-Server::Server(uint32_t port, Gamepad *g) {
+bool motion_is_zero(DataEvent &dataAnswer) {
+    return dataAnswer.motion.accX == 0.0F &&
+           dataAnswer.motion.accY == 0.0F &&
+           dataAnswer.motion.accZ == 0.0F &&
+           dataAnswer.motion.pitch == 0.0F &&
+           dataAnswer.motion.yaw == 0.0F &&
+           dataAnswer.motion.roll == 0.0F;
+}
+
+} // namespace
+
+Server::Server(const Config *const cfg, Gamepad *g)
+    : serverPort(cfg->port),
+      gyro_compensation(cfg->gyro_compensation),
+      gamepad(g) {
     PrepareAnswerConstants();
-    serverPort = port;
-    gamepad = g;
 }
 
 void Server::Start() {
@@ -274,18 +288,22 @@ std::pair<uint16_t, void const *> Server::PrepareDataAnswer(uint32_t const &pack
         automatic_cnt = 0;
     }
 
-    std::vector<ConfiguredButton> configButtons = gamepad->GetButtonStates();
+    std::vector<ConfiguredButton> &configButtons = gamepad->GetButtonStates();
 
     for (size_t i = 0; i < configButtons.size(); i++) {
         if (configButtons[i].pending) {
-            dataAnswer.motion.accX = (dataAnswer.motion.accX == configButtons[i].accX) ? 0 : configButtons[i].accX;
-            dataAnswer.motion.accY = (dataAnswer.motion.accY == configButtons[i].accY) ? 0 : configButtons[i].accY;
-            dataAnswer.motion.accZ = (dataAnswer.motion.accZ == configButtons[i].accZ) ? 0 : configButtons[i].accZ;
-            dataAnswer.motion.pitch = (dataAnswer.motion.pitch == configButtons[i].pitch) ? 0 : configButtons[i].pitch;
-            dataAnswer.motion.yaw = (dataAnswer.motion.yaw == configButtons[i].yaw) ? 0 : configButtons[i].yaw;
-            dataAnswer.motion.roll = (dataAnswer.motion.roll == configButtons[i].roll) ? 0 : configButtons[i].roll;
+            dataAnswer.motion.accX = configButtons[i].accX;
+            dataAnswer.motion.accY = configButtons[i].accY;
+            dataAnswer.motion.accZ = configButtons[i].accZ;
+            dataAnswer.motion.pitch = configButtons[i].pitch;
+            dataAnswer.motion.yaw = configButtons[i].yaw;
+            dataAnswer.motion.roll = configButtons[i].roll;
+            configButtons[i].pending = false;
         }
     }
+
+    if (gyro_compensation)
+        proccess_gyro_compensation();
 
     CalcCrcDataAnswer();
 
@@ -297,6 +315,18 @@ void Server::CalcCrcDataAnswer() {
 
     dataAnswer.header.crc32 = 0;
     dataAnswer.header.crc32 = crc32(reinterpret_cast<unsigned char *>(&dataAnswer), len);
+}
+
+void Server::proccess_gyro_compensation() {
+    if (!motion_is_zero(dataAnswer)) {
+        gyro_tracker.history.push_back({dataAnswer.motion.pitch, dataAnswer.motion.yaw, dataAnswer.motion.roll});
+    } else if (!gyro_tracker.history.empty()) {
+        auto const &sample = gyro_tracker.history.back();
+        dataAnswer.motion.pitch = -sample[0];
+        dataAnswer.motion.yaw = -sample[1];
+        dataAnswer.motion.roll = -sample[2];
+        gyro_tracker.history.pop_back();
+    }
 }
 
 bool Server::Client::operator==(sockaddr_in const &other) {

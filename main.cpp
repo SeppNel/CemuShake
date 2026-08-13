@@ -34,6 +34,7 @@ Config *readConfig() {
     try {
         YAML::Node configFile = YAML::LoadFile(configPath);
 
+        configStruct->gyro_compensation = configFile["gyro_compensation"].as<bool>();
         configStruct->port = configFile["port"].as<uint>();
 
         for (std::size_t i = 0; i < configFile["buttons"].size(); i++) {
@@ -72,7 +73,7 @@ int main() {
 
     Gamepad gamepad(configStruct->buttons);
     gamepad.Start();
-    Server server(configStruct->port, &gamepad);
+    Server server(configStruct, &gamepad);
     server.Start();
 
     SDL_Event event;

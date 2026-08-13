@@ -2,10 +2,11 @@
 #include "config.h"
 #include "crossSockets.h"
 #include "gamepad.h"
+#include <SDL2/SDL_gamecontroller.h>
 
+#include <array>
 #include <cstddef>
-#include <mutex>
-#include <shared_mutex>
+#include <cstdint>
 #include <thread>
 #include <vector>
 
@@ -13,7 +14,7 @@ using namespace cemuhook_protocol;
 
 class Server {
   public:
-    explicit Server(uint32_t port, Gamepad *gamepad);
+    explicit Server(const Config *const cfg, Gamepad *gamepad);
     void Start();
     void Stop();
 
@@ -27,32 +28,37 @@ class Server {
         bool operator!=(sockaddr_in const &other);
     };
 
+    struct Gyro_Compensation_Data {
+        // Every non-zero motion sample is recorded here while it happens,
+        // so it can be replayed in reverse once motion stops.
+        std::vector<std::array<float, 3>> history;
+
+        void reset() {
+            history.clear();
+        }
+    };
+
     uint32_t serverPort = 26760;
+    const bool gyro_compensation;
     Gamepad *gamepad = nullptr;
-
     bool stopFlag = false;
-
     int socketFd;
-
     std::unique_ptr<std::thread> sendThread;
     std::unique_ptr<std::thread> runThread;
-
-    void run();
-    void sendTask();
-
     SharedResponse sharedResponse;
     VersionInformation versionAnswer;
     InfoAnswer infoAnswer;
     InfoAnswer infoNoneAnswer;
     DataEvent dataAnswer;
+    std::vector<Client> clients;
+    Gyro_Compensation_Data gyro_tracker;
 
+    void run();
+    void sendTask();
     void PrepareAnswerConstants();
-
-    // std::pair<uint16_t, void const *> PrepareVersionAnswer(uint32_t const &id);
+    void CalcCrcDataAnswer();
+    void handleClientsTimeout();
     std::pair<uint16_t, void const *> PrepareInfoAnswer(uint8_t const &slot);
     std::pair<uint16_t, void const *> PrepareDataAnswer(uint32_t const &packet);
-    void CalcCrcDataAnswer();
-
-    std::vector<Client> clients;
-    void handleClientsTimeout();
+    void proccess_gyro_compensation();
 };

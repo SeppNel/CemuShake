@@ -37,6 +37,7 @@ struct ConfiguredButton {
 };
 
 struct Config {
+    bool gyro_compensation = false;
     uint32_t port = 26760;
     std::vector<ConfiguredButton> buttons;
 };

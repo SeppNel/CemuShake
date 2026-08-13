@@ -3,7 +3,7 @@ Linux and Windows app to simulate a shake motion input with a standard controlle
 
 Anything that uses the cemuhook (dsu) protocol should be compatible with this, if it lets you map a standard controller alongside this.  
 
-The main purpose for the development for this tool was to do motion exclusive throws in Mario Odyssey (Ryujinx).
+The main purpose for the development for this tool was to do motion exclusive throws in Mario Odyssey with a standard Xbox controller (Ryujinx).
 
 # Usage
 Configure your client (Ryujinx, Dolphin, etc...) like any other dsu client, with your ip and port 26760, or set up a custom port in the config file.  
@@ -11,13 +11,18 @@ Turn on controller, open CemuShake and open your client. It should work.
 
 By default RB (R1) is a shake with no gyro, to change this see the configuration section below.
 
+## Features
+ - AutoShake: Press select + start to active the auto shake. Lasts for about 4 seconds. Useful for mapping motion in yuzu/eden
+ - Gyro Compensation: Replays your motion back so that the simulated controller goes back to a consistent resting position after every press.
+
 ## Configuration
-You can configure the actions and some stuff creating a yaml config file in your home folder. It should be in `$HOME/.config/CemuShake.yml`
+You can configure the actions and some stuff creating a yaml config file in the same directory as the executable or in your home folder. It should be in `$HOME/.config/CemuShake.yml`
 
 Valid configs are:
 | Key | Value | Description |
 | :---: | :---: | :---: |
 | port | uint | Network port to use for the server |
+| gyro_compensation | bool | If feature is enabled |
 | buttons | list | List of actions with its correspending button, see table below to see how to add an entry |
 
 Buttons list elements:
@@ -60,6 +65,7 @@ Buttons id values:
 ```
 ---
 port: 26760
+gyro_compensation: false
 buttons:
     - id: 9 # LB
       accX: 0
