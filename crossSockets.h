@@ -1,4 +1,6 @@
+#include <cstdint>
 #include <iostream>
+#include <utility>
 
 #ifdef __unix__
 
@@ -18,7 +20,6 @@
 
 #define ssize_t int
 #define socklen_t int
-#define INET6_ADDRSTRLEN 46
 #define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12) // Workaround windows udp bug https://stackoverflow.com/questions/34242622/windows-udp-sockets-recvfrom-fails-with-error-10054
 
 #endif
