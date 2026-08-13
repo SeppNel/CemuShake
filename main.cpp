@@ -43,7 +43,7 @@ Config *readConfig() {
         YAML::Node configFile = YAML::LoadFile(configPath);
 
         configStruct->gyro_compensation = configFile["gyro_compensation"].as<bool>();
-        configStruct->port = configFile["port"].as<uint>();
+        configStruct->port = configFile["port"].as<uint32_t>();
 
         for (std::size_t i = 0; i < configFile["buttons"].size(); i++) {
             configStruct->buttons.emplace_back(
