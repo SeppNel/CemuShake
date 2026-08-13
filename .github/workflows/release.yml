@@ -29,17 +29,61 @@ jobs:
         name: Appimage
         path: build/CemuShake-x86_64.AppImage
 
-  Release:
-    runs-on: ubuntu-24.04
-    needs: AppimageBuild
+  WindowsBuild:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Download Build Artifact
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          make
+          zip
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-SDL2
+          mingw-w64-x86_64-yaml-cpp
+
+    - name: Build
+      run: make
+
+    - name: Package
+      run: |
+        mkdir -p package/windows/CemuShake
+        cp build/CemuShake.exe package/windows/CemuShake/
+        ldd build/CemuShake.exe | grep -i '/mingw64/' | awk '{print $3}' | xargs -I{} cp {} package/windows/CemuShake/
+        cd package/windows/CemuShake
+        zip -r ../../../CemuShake-x86_64-windows.zip .
+
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: Windows
+        path: CemuShake-x86_64-windows.zip
+
+  Release:
+    runs-on: ubuntu-24.04
+    needs: [AppimageBuild, WindowsBuild]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download Linux Build Artifact
       uses: actions/download-artifact@v4
       with:
         name: Appimage
+
+    - name: Download Windows Build Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: Windows
 
     - name: Set up Git
       run: |
@@ -69,7 +113,9 @@ jobs:
       uses: softprops/action-gh-release@v3
       with:
         tag_name: latest
-        files: CemuShake-x86_64.AppImage
+        files: |
+          CemuShake-x86_64.AppImage
+          CemuShake-x86_64-windows.zip
         prerelease: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

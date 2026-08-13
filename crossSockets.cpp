@@ -3,13 +3,7 @@
 namespace crossSockets {
 
 const char *GetIP(sockaddr_in const &addr, char *buf) {
-#ifdef __unix__
-    return inet_ntop(addr.sin_family, &(addr.sin_addr.s_addr), buf, INET6_ADDRSTRLEN);
-#endif
-#ifdef _WIN32
-    // TODO
-    return "TODO";
-#endif
+    return inet_ntop(addr.sin_family, (void *)&(addr.sin_addr.s_addr), buf, INET6_ADDRSTRLEN);
 }
 
 ssize_t SendPacket(int const &socketFd, std::pair<uint16_t, void const *> const &outBuf, sockaddr_in const &sockInClient) {

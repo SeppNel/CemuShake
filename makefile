@@ -2,7 +2,16 @@ appimageDir:="./package/AppImage"
 
 CXXFLAGS:=-O2 -Iinclude -MMD -MP
 LDFLAGS:=-Llib
+
+ifeq ($(OS),Windows_NT)
+EXE_EXT:=.exe
+LDLIBS:=-lmingw32 -lSDL2main -lSDL2 -lyaml-cpp -lws2_32
+else
+EXE_EXT:=
 LDLIBS:=-lpthread -lSDL2 -lSDL2main -lyaml-cpp
+endif
+
+TARGET:=build/CemuShake$(EXE_EXT)
 
 SRCS:=$(wildcard *.cpp)
 OBJS:=$(SRCS:%.cpp=build/%.o)
@@ -10,10 +19,10 @@ DEPS:=$(OBJS:.o=.d)
 
 .PHONY: CemuShake run clean appimage
 
-CemuShake: build/CemuShake
+CemuShake: $(TARGET)
 
-build/CemuShake: $(OBJS)
-	g++ $(OBJS) -o build/CemuShake $(LDFLAGS) $(LDLIBS)
+$(TARGET): $(OBJS)
+	g++ $(OBJS) -o $(TARGET) $(LDFLAGS) $(LDLIBS)
 
 build/%.o: %.cpp | build
 	g++ $(CXXFLAGS) -c $< -o $@
@@ -24,7 +33,7 @@ build:
 -include $(DEPS)
 
 run: CemuShake
-	./build/CemuShake
+	./$(TARGET)
 
 clean:
 	rm -R build/

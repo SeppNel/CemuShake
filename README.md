@@ -86,7 +86,7 @@ buttons:
 You need SDL2 for the controller and yaml-cpp for the config, so install those through your package manager or with vcpkg as described in the dependencies section.
 
 On linux you just need to run `make`  
-On Windows for now you need to set up a VS project, import the files and compile.
+On Windows, install [MSYS2](https://www.msys2.org/), open the MINGW64 shell, install the dependencies below and run `make`
 
 ## Dependencies
 For ubuntu:  
@@ -95,8 +95,8 @@ For ubuntu:
 For Fedora:  
 `sudo dnf install SDL2-devel yaml-cpp-devel`
 
-For Windows (vcpkg):  
-`vcpkg install sdl2 yaml-cpp`
+For Windows (MSYS2 MINGW64 shell):  
+`pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2 mingw-w64-x86_64-yaml-cpp`
 
 # Acknowledgements
 [Valeri](https://github.com/v1993) for his documentation [Cemuhook-Protocol](https://github.com/v1993/cemuhook-protocol)  

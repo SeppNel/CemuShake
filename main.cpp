@@ -2,6 +2,7 @@
 #include "config.h"
 #include "gamepad.h"
 #include <csignal>
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -28,7 +29,14 @@ Config *readConfig() {
     std::string configPath = "./CemuShake.yml";
 
     if (!std::filesystem::exists(configPath)) {
-        configPath = std::string(getenv("HOME")) + "/.config/CemuShake.yml";
+#ifdef _WIN32
+        const char *homeDir = getenv("USERPROFILE");
+#else
+        const char *homeDir = getenv("HOME");
+#endif
+        if (homeDir != nullptr) {
+            configPath = std::string(homeDir) + "/.config/CemuShake.yml";
+        }
     }
 
     try {
