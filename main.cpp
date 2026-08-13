@@ -2,6 +2,7 @@
 #include "config.h"
 #include "gamepad.h"
 #include <csignal>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <sys/types.h>
@@ -24,14 +25,11 @@ void signalHandler(int signal) {
 Config *readConfig() {
     Config *configStruct = new Config();
 
-#ifdef __unix__
-    std::string homeDir = getenv("HOME");
-    std::string configPath = homeDir + "/.config/CemuShake.yml";
-#endif
+    std::string configPath = "./CemuShake.yml";
 
-#ifdef _WIN32
-    std::string configPath = "CemuShake.yml";
-#endif
+    if (!std::filesystem::exists(configPath)) {
+        configPath = std::string(getenv("HOME")) + "/.config/CemuShake.yml";
+    }
 
     try {
         YAML::Node configFile = YAML::LoadFile(configPath);
