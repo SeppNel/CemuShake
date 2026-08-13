@@ -96,7 +96,7 @@ For Fedora:
 `sudo dnf install SDL2-devel yaml-cpp-devel`
 
 For Windows (MSYS2 MINGW64 shell):  
-`pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2 mingw-w64-x86_64-yaml-cpp`
+`pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2 mingw-w64-x86_64-yaml-cpp zip make`
 
 # Acknowledgements
 [Valeri](https://github.com/v1993) for his documentation [Cemuhook-Protocol](https://github.com/v1993/cemuhook-protocol)  

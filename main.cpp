@@ -64,7 +64,7 @@ Config *readConfig() {
     return configStruct;
 }
 
-int main() {
+int main(int argv, char **args) {
     std::signal(SIGINT, signalHandler);
 
     // Initialize SDL

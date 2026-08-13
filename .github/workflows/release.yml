@@ -52,21 +52,13 @@ jobs:
           mingw-w64-x86_64-yaml-cpp
 
     - name: Build
-      run: make
-
-    - name: Package
-      run: |
-        mkdir -p package/windows/CemuShake
-        cp build/CemuShake.exe package/windows/CemuShake/
-        ldd build/CemuShake.exe | grep -i '/mingw64/' | awk '{print $3}' | xargs -I{} cp {} package/windows/CemuShake/
-        cd package/windows/CemuShake
-        zip -r ../../../CemuShake-x86_64-windows.zip .
+      run: make windist
 
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       with:
         name: Windows
-        path: CemuShake-x86_64-windows.zip
+        path: build/CemuShake-x86_64-windows.zip
 
   Release:
     runs-on: ubuntu-24.04
