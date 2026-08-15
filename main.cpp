@@ -57,8 +57,9 @@ Config *readConfig() {
                 configFile["buttons"][i]["roll"].as<float>());
         }
 
-    } catch (YAML::BadFile) {
-        cout << "Could not load config file\n";
+    } catch (...) {
+        cout << "[ERROR!] Could not load config file. Check spelling and that all settings have a value.\n";
+        cout << "Using default config (R to shake).\n";
     }
 
     return configStruct;
