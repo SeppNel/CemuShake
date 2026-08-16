@@ -61,26 +61,26 @@ Buttons id values:
 | 19 | Paddle 4 (Elite) | Not applicable |
 | 20 | Not applicable | Touchpad |
 
-### Example config file
+### Example config file (My setup for SMO)
 ```
 ---
+gyro_compensation: true
 port: 26760
-gyro_compensation: false
 buttons:
-    - id: 9 # LB
+    - id: 7
       accX: 0
-      accY: 200 # Shake Up
+      accY: 200
       accZ: 0
-      pitch: -20 # Gyro backwards
+      pitch: 30
       yaw: 0
-      roll: 0
-    - id: 10 # RB
+      roll: 10
+    - id: 8
       accX: 0
-      accY: 200 # Shake up
+      accY: 200
       accZ: 0
-      pitch: 20 # Gyro forward
+      pitch: -30
       yaw: 0
-      roll: 0
+      roll: 10
 ```
 # Building
 You need SDL2 for the controller and yaml-cpp for the config, so install those through your package manager or with vcpkg as described in the dependencies section.
