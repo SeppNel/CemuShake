@@ -50,7 +50,7 @@ bool motion_is_zero(DataEvent &dataAnswer) {
 
 } // namespace
 
-Server::Server(const Config *const cfg, Gamepad *g)
+Server::Server(const Config *cfg, Gamepad *g)
     : serverPort(cfg->port),
       gyro_compensation(cfg->gyro_compensation),
       gamepad(g) {

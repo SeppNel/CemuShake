@@ -47,7 +47,7 @@ Config *readConfig() {
 
         for (std::size_t i = 0; i < configFile["buttons"].size(); i++) {
             configStruct->buttons.emplace_back(
-                configFile["buttons"][i]["id"].as<int>(),
+                configFile["buttons"][i]["id"].as<uint8_t>(),
                 false,
                 configFile["buttons"][i]["accX"].as<float>(),
                 configFile["buttons"][i]["accY"].as<float>(),
@@ -59,7 +59,6 @@ Config *readConfig() {
 
     } catch (...) {
         cout << "[ERROR!] Could not load config file. Check spelling and that all settings have a value.\n";
-        cout << "Using default config (R to shake).\n";
     }
 
     return configStruct;
@@ -77,13 +76,15 @@ int main(int argv, char **args) {
 
     Config *configStruct = readConfig();
     if (configStruct->buttons.size() == 0) {
+        cout << "Using default config (R to shake).\n";
         configStruct->buttons.emplace_back(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, false, 0.0f, 200.0f, 0.0f, 0.0f, 0.0f, 0.0f); // Default: RB = Shake up, no gyro;
     }
 
-    Gamepad gamepad(configStruct->buttons);
+    Gamepad gamepad(std::move(configStruct->buttons));
     gamepad.Start();
     Server server(configStruct, &gamepad);
     server.Start();
+    delete configStruct;
 
     SDL_Event event;
     while (!stopFlag) {

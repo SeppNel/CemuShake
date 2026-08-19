@@ -14,7 +14,7 @@ using namespace cemuhook_protocol;
 
 class Server {
   public:
-    explicit Server(const Config *const cfg, Gamepad *gamepad);
+    explicit Server(const Config *cfg, Gamepad *gamepad);
     void Start();
     void Stop();
 
@@ -38,9 +38,9 @@ class Server {
         }
     };
 
-    uint32_t serverPort = 26760;
+    const uint32_t serverPort;
     const bool gyro_compensation;
-    Gamepad *gamepad = nullptr;
+    Gamepad *const gamepad = nullptr;
     bool stopFlag = false;
     int socketFd;
     std::unique_ptr<std::thread> sendThread;
